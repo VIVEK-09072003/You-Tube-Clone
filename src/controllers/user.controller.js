@@ -6,20 +6,15 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
 
-
-
-
-
-const generateAccessAndRefereshTokens = async(userId) =>{
+const generateAccessAndRefereshTokens = async (userId) => {
     try {
         const user = await User.findById(userId)
         const accessToken = user.generateAccessToken()
         const refreshToken = user.generateRefreshToken()
-
         user.refreshToken = refreshToken
         await user.save({ validateBeforeSave: false })
 
-        return {accessToken, refreshToken}
+        return { accessToken, refreshToken }
 
 
     } catch (error) {
@@ -100,7 +95,7 @@ const registerUser = asyncHandler(async (req, res,) => {
     )
 })
 
-const loginUser = asyncHandler(async (req, res) => {debugger
+const loginUser = asyncHandler(async (req, res) => {
     // res body -> data
     // userName and email 
     // find the user
@@ -108,7 +103,6 @@ const loginUser = asyncHandler(async (req, res) => {debugger
     // access and referesh token
     // send cookie 
 
-    
     const { email, userName, password } = req.body
     // console.log(email);
     // console.log(password);
@@ -120,7 +114,7 @@ const loginUser = asyncHandler(async (req, res) => {debugger
     const user = await User.findOne({
         $or: [{ userName }, { email }]
     })
-    
+
 
 
     if (!user) {
@@ -134,6 +128,8 @@ const loginUser = asyncHandler(async (req, res) => {debugger
     }
 
     const { accessToken, refereshToken } = await generateAccessAndRefereshTokens(user._id)
+    console.log(accessToken);
+    console.log(refereshToken);
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
 
     const options = {
@@ -160,8 +156,8 @@ const logoutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: {
-                refreshToken: undefined
+            $Unset: {
+                refreshToken: 1
             }
         },
         {
@@ -328,8 +324,8 @@ const updateUserCoverImage = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, user, "cover image updated successfully"))
 })
 
-const getUserChannelProfile =asyncHandler(async(req,res ) =>{
-    const {userName} = req.params
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+    const { userName } = req.params
 
     if (!userName?.trim) {
         throw new ApiError(400, "userName is missing ")
@@ -359,15 +355,15 @@ const getUserChannelProfile =asyncHandler(async(req,res ) =>{
         },
         {
             $addFields: {
-                subscribersCount:{
+                subscribersCount: {
                     $size: "$subscribers"
                 },
                 channelsSubscribersToCount: {
                     $size: "$subscribedTo"
                 },
                 isSubscribed: {
-                    $cond:{
-                        if:{$in :[req.user?._id, "$subscribers.subscriber"]},
+                    $cond: {
+                        if: { $in: [req.user?._id, "$subscribers.subscriber"] },
                         then: true,
                         else: false
                     }
@@ -376,14 +372,14 @@ const getUserChannelProfile =asyncHandler(async(req,res ) =>{
         },
         {
             $project: {
-                fullName:1,
-                userName:1,
-                subscribersCount:1,
-                channelsSubscribersToCount:1,
-                isSubscribed:1,
-                avatar:1,
-                coverImage:1,
-                email:1
+                fullName: 1,
+                userName: 1,
+                subscribersCount: 1,
+                channelsSubscribersToCount: 1,
+                isSubscribed: 1,
+                avatar: 1,
+                coverImage: 1,
+                email: 1
 
             }
         }
@@ -393,14 +389,14 @@ const getUserChannelProfile =asyncHandler(async(req,res ) =>{
         throw new ApiError(404, "channel does not  exists")
     }
     return res
-    .status(200)
-    .jsom(
-        new ApiResponse(200, channel[0],"User channel fetched successfully")
-    )
-}) 
+        .status(200)
+        .jsom(
+            new ApiResponse(200, channel[0], "User channel fetched successfully")
+        )
+})
 
 
-const getWatchHistory = asyncHandler(async(req ,res) =>{
+const getWatchHistory = asyncHandler(async (req, res) => {
     const user = await User.aggregate([
         {
             $match: {
@@ -408,33 +404,33 @@ const getWatchHistory = asyncHandler(async(req ,res) =>{
             }
         },
         {
-            $lookup:{
+            $lookup: {
                 from: 'videos',
                 localField: "watchHistory",
                 foreignField: "_id",
                 as: "watchHistory",
                 pipeline: [
                     {
-                        $lookup:{
+                        $lookup: {
                             from: "users",
                             localField: "owner",
                             foreignField: "_id",
                             as: "owner",
                             pipeline: [
                                 {
-                                    $project:{
-                                        fullName:1,
-                                        userName:1,
-                                        avatar:1
+                                    $project: {
+                                        fullName: 1,
+                                        userName: 1,
+                                        avatar: 1
                                     }
                                 }
                             ]
                         }
                     },
                     {
-                        $addFields:{
-                            owner:{
-                                $first:"$owner"
+                        $addFields: {
+                            owner: {
+                                $first: "$owner"
                             }
                         }
                     }
@@ -444,11 +440,11 @@ const getWatchHistory = asyncHandler(async(req ,res) =>{
         }
     ])
     return res
-    .status(200)
-    .json(
-        new ApiResponse(200,user[0].watchHistory,"watch history successfully")
-    )
-})   
+        .status(200)
+        .json(
+            new ApiResponse(200, user[0].watchHistory, "watch history successfully")
+        )
+})
 
 
 export {
